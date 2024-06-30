@@ -1,0 +1,39 @@
+name: Auto Commit New Files
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, '[AUTO COMMIT]')"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install pdftoppm
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+    - name: Run make all
+      run: make all
+
+    - name: Check for new files
+      id: check_new_files
+      run: |
+        git status --porcelain | grep '??' | sed 's/?? //' | paste -sd, - > new_files.txt
+        if [ -s new_files.txt ]; then
+          echo "::set-output name=new_files::true"
+        else
+          echo "::set-output name=new_files::false"
+        fi
+
+    - name: Commit new files
+      if: steps.check_new_files.outputs.new_files == 'true'
+      run: |
+        rm new_files.txt
+        git add .
+        git commit -m "[AUTO COMMIT] - added new files"
+        git push origin main
