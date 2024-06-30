@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,17 +24,14 @@ jobs:
     - name: Check for new files
       id: check_new_files
       run: |
-        git status --porcelain | grep '??' | sed 's/?? //' | paste -sd, - > new_files.txt
-        if [ -s new_files.txt ]; then
-          echo "::set-output name=new_files::true"
-        else
-          echo "::set-output name=new_files::false"
-        fi
+        new_files=$(git status --porcelain | grep '??' | sed 's/?? //' | paste -sd, -)
+        echo "new_files=$new_files" >> $GITHUB_ENV
 
     - name: Commit new files
-      if: steps.check_new_files.outputs.new_files == 'true'
+      if: env.new_files != ''
       run: |
-        rm new_files.txt
+        git config --global user.email "daniellopez123456789@gmail.com"
+        git config --global user.name "TennisGazelle"
         git add .
-        git commit -m "[AUTO COMMIT] - added new files"
+        git commit -m "[AUTO COMMIT] - added $new_files"
         git push origin main
